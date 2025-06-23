@@ -34,6 +34,7 @@ export class GameService {
       await validateGameAction('item_remove', { quantity: quantityToRemove });
 
       // Find the unequipped item stack in the inventory
+      // Primeiro tenta encontrar pelo ID do registro (inventoryId)
       const { data: existingItem, error: fetchError } = await supabase
         .from('inventory')
         .select('id, quantity')

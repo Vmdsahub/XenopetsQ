@@ -602,7 +602,10 @@ export const useGameStore = create<GameStore>()(
           // Primeiro, atualize o estado local para feedback imediato ao usuário
           set((currentState) => ({
             inventory: currentState.inventory.reduce((acc, item) => {
-              if (item.id === itemId) {
+              // Verificar primeiro se temos inventoryId e comparar com o itemId (que pode ser um inventoryId)
+              // ou comparar com o id do item se não houver inventoryId
+              if ((item.inventoryId && item.inventoryId === itemId) || 
+                  (!item.inventoryId && item.id === itemId)) {
                 const newQuantity = item.quantity - quantityToRemove;
                 if (newQuantity > 0) {
                   acc.push({ ...item, quantity: newQuantity });

@@ -87,6 +87,7 @@ export const InventoryScreen: React.FC = () => {
     if (item.inventoryId) {
       removeFromInventory(item.inventoryId, 1);
     } else {
+      console.error('Item does not have inventoryId, falling back to item.id');
       removeFromInventory(item.id, 1);
     }
     
