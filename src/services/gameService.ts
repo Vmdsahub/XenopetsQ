@@ -228,44 +228,60 @@ export class GameService {
     }
   }
 
-  async addItemToInventory(userId: string, itemId: string, quantity = 1): Promise<boolean> {
+  async addItemToInventory(userId: string, itemId: string, quantity = 1): Promise<{ id: string, itemId: string, quantity: number } | null> {
     try {
       await validateGameAction('item_add', { quantity });
 
-      // Check if item already exists in inventory
-      const { data: existing } = await supabase
+      // Check if item already exists in inventory (unequipped stack)
+      const { data: existingStack, error: fetchError } = await supabase
         .from('inventory')
-        .select('*')
+        .select('id, quantity, item_id')
         .eq('user_id', userId)
         .eq('item_id', itemId)
-        .is('equipped_pet_id', null)
+        .is('equipped_pet_id', null) // Ensure we are targeting an unequipped stack
         .single();
 
-      if (existing) {
-        // Update quantity
-        const { error } = await supabase
-          .from('inventory')
-          .update({ quantity: existing.quantity + quantity })
-          .eq('id', existing.id);
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: 'single' row not found, which is fine if inserting new
+        console.error('Error checking existing inventory item:', fetchError);
+        throw fetchError;
+      }
 
-        if (error) throw error;
+      if (existingStack) {
+        // Update quantity of existing stack
+        const newQuantity = existingStack.quantity + quantity;
+        const { data: updatedData, error: updateError } = await supabase
+          .from('inventory')
+          .update({ quantity: newQuantity })
+          .eq('id', existingStack.id)
+          .select('id, item_id, quantity')
+          .single();
+
+        if (updateError) throw updateError;
+        if (!updatedData) throw new Error("Failed to get updated item data.");
+
+        return { id: updatedData.id, itemId: updatedData.item_id, quantity: updatedData.quantity };
+
       } else {
-        // Insert new item
-        const { error } = await supabase
+        // Insert new item entry
+        const { data: insertedData, error: insertError } = await supabase
           .from('inventory')
           .insert({
             user_id: userId,
             item_id: itemId,
             quantity: quantity
-          });
+          })
+          .select('id, item_id, quantity')
+          .single();
 
-        if (error) throw error;
+        if (insertError) throw insertError;
+        if (!insertedData) throw new Error("Failed to get inserted item data.");
+
+        return { id: insertedData.id, itemId: insertedData.item_id, quantity: insertedData.quantity };
       }
 
-      return true;
     } catch (error) {
       console.error('Error adding item to inventory:', error);
-      return false;
+      return null;
     }
   }
 

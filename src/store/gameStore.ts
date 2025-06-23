@@ -533,25 +533,65 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         if (!state.user) return;
 
-        // Get the universal item to ensure we have the complete data
-        const universalItem = get().getUniversalItem(item.id);
-        const itemToAdd = universalItem || item;
+        // Get the universal item to ensure we have the complete data for properties like name, description, etc.
+        // The quantity from the input `item` parameter (e.g. from a shop or reward) is the quantity to add.
+        const universalItemDetails = get().getUniversalItem(item.id);
+        if (!universalItemDetails) {
+          console.error(`Universal item definition not found for ID: ${item.id}`);
+          get().addNotification({ type: 'error', title: 'Erro Interno', message: `Item ${item.id} não encontrado.`});
+          return;
+        }
 
-        // Add to database
-        await gameService.addItemToInventory(state.user.id, itemToAdd.id, itemToAdd.quantity);
+        // The quantity to add is from the passed `item.quantity` or defaults to 1 if not specified.
+        const quantityToAdd = item.quantity || 1;
+
+        // Call the service to add/update the item in the database
+        const dbUpdateResult = await gameService.addItemToInventory(state.user.id, universalItemDetails.id, quantityToAdd);
         
-        // Add to local state
-        set((state) => {
-          const existingItem = state.inventory.find(i => i.id === itemToAdd.id);
-          if (existingItem) {
-            return {
-              inventory: state.inventory.map(i => 
-                i.id === itemToAdd.id ? { ...i, quantity: i.quantity + itemToAdd.quantity } : i
-              )
-            };
-          }
-          return { inventory: [...state.inventory, itemToAdd] };
-        });
+        if (dbUpdateResult) {
+          // Database update was successful, now update local state
+          set((currentState) => {
+            const newInventory = [...currentState.inventory];
+            const existingItemIndex = newInventory.findIndex(invItem => invItem.inventoryId === dbUpdateResult.id);
+
+            if (existingItemIndex > -1) {
+              // Item stack already exists locally by inventoryId, update its quantity
+              newInventory[existingItemIndex] = {
+                ...newInventory[existingItemIndex],
+                quantity: dbUpdateResult.quantity,
+                // Ensure other details are up-to-date from universal item, though they shouldn't change often
+                ...universalItemDetails,
+                id: dbUpdateResult.itemId, // This is the item definition ID
+                inventoryId: dbUpdateResult.id // This is the inventory entry UUID
+              };
+            } else {
+              // New item stack or item that didn't have inventoryId locally yet.
+              // It's possible an item with the same itemId (definition ID) but no inventoryId existed.
+              // We should remove any such old local-only representation if its definition ID matches,
+              // and then add/update using the definitive data from the DB.
+              const filteredInventory = newInventory.filter(invItem => invItem.id !== dbUpdateResult.itemId || invItem.inventoryId);
+
+              // Add the new item with all details from universal definition and DB result
+              filteredInventory.push({
+                ...universalItemDetails, // Base properties from universal definition
+                id: dbUpdateResult.itemId, // Item definition ID
+                inventoryId: dbUpdateResult.id, // Inventory entry UUID from DB
+                quantity: dbUpdateResult.quantity, // Quantity from DB
+                isEquipped: false, // New items are not equipped
+                // createdAt might be set by universal_items, or we might want a specific acquisition date.
+                // For now, rely on universalItemDetails.createdAt or new Date()
+                createdAt: universalItemDetails.createdAt || new Date()
+              });
+              return { inventory: filteredInventory };
+            }
+            return { inventory: newInventory };
+          });
+        } else {
+          // Database update failed
+          get().addNotification({ type: 'error', title: 'Erro ao Adicionar Item', message: `Não foi possível adicionar ${universalItemDetails.name} ao inventário.`});
+          // Optionally, trigger a sync or handle error more gracefully
+          await get().syncWithDatabase();
+        }
       },
       
       removeFromInventory: async (itemId, quantityToRemove = 1) => {
