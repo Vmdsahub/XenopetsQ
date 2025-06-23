@@ -4,9 +4,13 @@ import { GameState, User, Pet, Item, Notification, Achievement, Collectible, Que
 import { gameService } from '../services/gameService';
 
 // Sistema Universal de Itens - Base de dados central com imagens
+// IMPORTANT: The `id` field here MUST be the actual UUID from your `items` database table.
+// The `slug` field is the human-readable identifier.
+// The keys of this object (e.g., 'health-potion-1') are the slugs used for lookup.
 const UNIVERSAL_ITEMS: Record<string, Item> = {
   'health-potion-1': {
-    id: 'health-potion-1',
+    id: 'replace-with-uuid-for-health-potion-1', // ACTUAL UUID REQUIRED
+    slug: 'health-potion-1',
     name: 'Health Potion',
     description: 'A magical elixir that restores 5 health points instantly',
     type: 'Potion',
@@ -19,7 +23,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'magic-apple-1': {
-    id: 'magic-apple-1',
+    id: 'replace-with-uuid-for-magic-apple-1', // ACTUAL UUID REQUIRED
+    slug: 'magic-apple-1',
     name: 'Magic Apple',
     description: 'A mystical fruit that restores hunger and provides energy. Hunger decays over time, so feed your pet regularly!',
     type: 'Food',
@@ -32,7 +37,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'happiness-toy-1': {
-    id: 'happiness-toy-1',
+    id: 'replace-with-uuid-for-happiness-toy-1', // ACTUAL UUID REQUIRED
+    slug: 'happiness-toy-1',
     name: 'Happiness Toy',
     description: 'A colorful toy that brings joy to pets',
     type: 'Special',
@@ -45,7 +51,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'energy-drink-1': {
-    id: 'energy-drink-1',
+    id: 'replace-with-uuid-for-energy-drink-1', // ACTUAL UUID REQUIRED
+    slug: 'energy-drink-1',
     name: 'Energy Drink',
     description: 'A refreshing beverage that boosts pet stats temporarily',
     type: 'Potion',
@@ -58,7 +65,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'desert-crystal-1': {
-    id: 'desert-crystal-1',
+    id: 'replace-with-uuid-for-desert-crystal-1', // ACTUAL UUID REQUIRED
+    slug: 'desert-crystal-1',
     name: 'Desert Crystal',
     description: 'A rare crystal that enhances pet intelligence permanently',
     type: 'Special',
@@ -71,7 +79,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'iron-armor-1': {
-    id: 'iron-armor-1',
+    id: 'replace-with-uuid-for-iron-armor-1', // ACTUAL UUID REQUIRED
+    slug: 'iron-armor-1',
     name: 'Iron Armor',
     description: 'Sturdy armor that provides excellent protection',
     type: 'Equipment',
@@ -85,7 +94,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'crystal-sword-1': {
-    id: 'crystal-sword-1',
+    id: 'replace-with-uuid-for-crystal-sword-1', // ACTUAL UUID REQUIRED
+    slug: 'crystal-sword-1',
     name: 'Crystal Sword',
     description: 'A powerful weapon forged from mountain crystals',
     type: 'Weapon',
@@ -98,7 +108,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'premium-elixir-1': {
-    id: 'premium-elixir-1',
+    id: 'replace-with-uuid-for-premium-elixir-1', // ACTUAL UUID REQUIRED
+    slug: 'premium-elixir-1',
     name: 'Premium Elixir',
     description: 'An expensive but powerful healing potion that fully restores health and happiness',
     type: 'Potion',
@@ -111,7 +122,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'super-food-1': {
-    id: 'super-food-1',
+    id: 'replace-with-uuid-for-super-food-1', // ACTUAL UUID REQUIRED
+    slug: 'super-food-1',
     name: 'Super Food',
     description: 'Premium pet food that completely satisfies hunger and boosts happiness',
     type: 'Food',
@@ -124,7 +136,8 @@ const UNIVERSAL_ITEMS: Record<string, Item> = {
     createdAt: new Date()
   },
   'strength-potion-1': {
-    id: 'strength-potion-1',
+    id: 'replace-with-uuid-for-strength-potion-1', // ACTUAL UUID REQUIRED
+    slug: 'strength-potion-1',
     name: 'Strength Potion',
     description: 'A powerful brew that permanently increases your pet\'s strength',
     type: 'Potion',
@@ -533,48 +546,59 @@ export const useGameStore = create<GameStore>()(
         const state = get();
         if (!state.user) return;
 
-        // Get the universal item to ensure we have the complete data for properties like name, description, etc.
-        // The quantity from the input `item` parameter (e.g. from a shop or reward) is the quantity to add.
-        const universalItemDetails = get().getUniversalItem(item.id);
-        if (!universalItemDetails) {
-          console.error(`Universal item definition not found for ID: ${item.id}`);
-          get().addNotification({ type: 'error', title: 'Erro Interno', message: `Item ${item.id} não encontrado.`});
+        // The `item` parameter already IS the universal item details, fetched by slug,
+        // and its `item.id` field now holds the UUID. `item.slug` holds the slug.
+        if (!item || !item.id || !item.slug) { // item.id is UUID, item.slug is the string slug
+          console.error(`Invalid item data passed to addToInventory:`, item);
+          get().addNotification({ type: 'error', title: 'Erro Interno', message: `Dados do item inválidos.`});
           return;
         }
 
-        // The quantity to add is from the passed `item.quantity` or defaults to 1 if not specified.
+        // The quantity to add is from the passed `item.quantity` (which is usually 1 from UNIVERSAL_ITEMS for a single purchase)
+        // or defaults to 1 if not specified on the passed item.
         const quantityToAdd = item.quantity || 1;
 
         // Call the service to add/update the item in the database
-        const dbUpdateResult = await gameService.addItemToInventory(state.user.id, universalItemDetails.id, quantityToAdd);
+        // Pass item.id (which is the UUID) to the service.
+        const dbUpdateResult = await gameService.addItemToInventory(state.user.id, item.id, quantityToAdd);
         
         if (dbUpdateResult) {
           // Database update was successful, now update local state
+          // dbUpdateResult = { id: inventory_UUID, itemId: item_UUID, quantity: new_total_quantity }
           set((currentState) => {
             const newInventory = [...currentState.inventory];
             const existingItemIndex = newInventory.findIndex(invItem => invItem.inventoryId === dbUpdateResult.id);
 
+            // `item` here is the full universal item object passed to addToInventory, containing all static details.
+            // `dbUpdateResult.itemId` is the item's UUID, which should match `item.id`.
+            // `dbUpdateResult.id` is the inventory row's UUID.
+            // `dbUpdateResult.quantity` is the new total quantity for this inventory row.
+
             if (existingItemIndex > -1) {
-              // Item stack already exists locally by inventoryId, update its quantity
+              // Item stack already exists locally by inventoryId (inventory row UUID), update its quantity
               newInventory[existingItemIndex] = {
-                ...newInventory[existingItemIndex],
-                quantity: dbUpdateResult.quantity,
-                // Ensure other details are up-to-date from universal item, though they shouldn't change often
-                ...universalItemDetails,
-                id: dbUpdateResult.itemId, // This is the item definition ID
-                inventoryId: dbUpdateResult.id // This is the inventory entry UUID
+                ...newInventory[existingItemIndex], // Preserve existing dynamic properties like isEquipped
+                ...item, // Apply all static properties from the universal item definition
+                id: dbUpdateResult.itemId, // Item's UUID (same as item.id)
+                inventoryId: dbUpdateResult.id, // Inventory row's UUID
+                quantity: dbUpdateResult.quantity, // New total quantity
               };
             } else {
               // New item stack or item that didn't have inventoryId locally yet.
-              // It's possible an item with the same itemId (definition ID) but no inventoryId existed.
-              // We should remove any such old local-only representation if its definition ID matches,
+              // We should remove any old local-only representation if its item UUID matches,
               // and then add/update using the definitive data from the DB.
-              const filteredInventory = newInventory.filter(invItem => invItem.id !== dbUpdateResult.itemId || invItem.inventoryId);
+              const filteredInventory = newInventory.filter(invItem => {
+                // Keep if it's not the item we're adding (match by item UUID) OR if it is, but it already has an inventoryId (it's a different stack/entry)
+                // This logic might need refinement if we are sure there's only one unequipped stack per item UUID.
+                // For now, this ensures we don't have a local-only version AND a DB version.
+                return invItem.id !== dbUpdateResult.itemId || invItem.inventoryId;
+              });
 
-              // Add the new item with all details from universal definition and DB result
+              // Add the new item with all details from the input `item` (which is a universal item)
+              // and the specific inventory details from `dbUpdateResult`.
               filteredInventory.push({
-                ...universalItemDetails, // Base properties from universal definition
-                id: dbUpdateResult.itemId, // Item definition ID
+                ...item, // Base properties from universal definition (name, description, effects, slug, etc.)
+                id: dbUpdateResult.itemId, // Item's UUID (same as item.id)
                 inventoryId: dbUpdateResult.id, // Inventory entry UUID from DB
                 quantity: dbUpdateResult.quantity, // Quantity from DB
                 isEquipped: false, // New items are not equipped
