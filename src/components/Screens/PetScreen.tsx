@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PetPortrait } from '../Pet/PetPortrait';
 import { PetCreation } from '../Pet/PetCreation';
 import { useGameStore } from '../../store/gameStore';
-import { Heart, Plus, MapPin, Package, Gamepad2, Lock } from 'lucide-react';
+import { Heart, Plus, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Pet } from '../../types/game';
 
@@ -43,6 +43,7 @@ export const PetScreen: React.FC = () => {
         precision: petData.precision,
         evasion: petData.evasion,
         luck: petData.luck,
+        level: petData.level,
         conditions: [],
         equipment: {},
         isAlive: true,
@@ -55,7 +56,8 @@ export const PetScreen: React.FC = () => {
         addNotification({
           type: 'success',
           title: 'Pet Criado!',
-          message: `Bem-vindo ${newPet.name} à sua família!`
+          message: `Bem-vindo ${newPet.name} à sua família!`,
+          isRead: false
         });
         
         setShowPetCreation(false);
@@ -63,7 +65,8 @@ export const PetScreen: React.FC = () => {
         addNotification({
           type: 'error',
           title: 'Erro',
-          message: 'Ocorreu um erro ao criar seu pet.'
+          message: 'Ocorreu um erro ao criar seu pet.',
+          isRead: false
         });
       }
     } catch (error) {
@@ -71,7 +74,8 @@ export const PetScreen: React.FC = () => {
       addNotification({
         type: 'error',
         title: 'Erro',
-        message: 'Ocorreu um erro ao criar seu pet.'
+        message: 'Ocorreu um erro ao criar seu pet.',
+        isRead: false
       });
     } finally {
       setIsLoading(false);
@@ -83,7 +87,8 @@ export const PetScreen: React.FC = () => {
     addNotification({
       type: 'info',
       title: 'Pet Selecionado',
-      message: `${pet.name} agora é seu pet ativo!`
+      message: `${pet.name} agora é seu pet ativo!`,
+      isRead: false
     });
   };
 
@@ -233,150 +238,26 @@ export const PetScreen: React.FC = () => {
     );
   }
 
-  const quickActions = [
-    {
-      id: 'inventory',
-      title: 'Abrir Inventário',
-      description: 'Use itens para cuidar do seu pet',
-      icon: Package,
-      color: 'bg-green-50 hover:bg-green-100 border-green-200',
-      iconColor: 'text-green-600',
-      action: () => setCurrentScreen('inventory')
-    },
-    {
-      id: 'world',
-      title: 'Explorar Mundo',
-      description: 'Visite lojas, hospitais e minigames',
-      icon: MapPin,
-      color: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
-      iconColor: 'text-blue-600',
-      action: () => setCurrentScreen('world')
-    },
-    {
-      id: 'minigames',
-      title: 'Jogar Minigames',
-      description: 'Encontre minigames no mapa para se divertir',
-      icon: Gamepad2,
-      color: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
-      iconColor: 'text-purple-600',
-      action: () => {
-        setCurrentScreen('world');
-        addNotification({
-          type: 'info',
-          title: 'Minigames no Mapa',
-          message: 'Procure por pontos de interesse com ícone de jogo no mapa!'
-        });
-      }
-    }
-  ];
-
   return (
     <>
       <div className="max-w-md mx-auto">
         <PetPortrait pet={activePet!} />
         
-        {/* Quick Navigation */}
+        {/* Botão de escolher ovo bloqueado */}
         <motion.div 
-          className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100 mb-6"
+          className="bg-white rounded-3xl shadow-xl p-6 border border-gray-100 mb-6 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-gray-900">Navegação Rápida</h3>
-            <Heart className="w-6 h-6 text-red-500" />
-          </div>
-          
-          <div className="grid grid-cols-1 gap-4">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <motion.button
-                  key={action.id}
-                  onClick={action.action}
-                  className={`flex items-center space-x-4 p-4 rounded-2xl border-2 transition-all duration-200 ${action.color}`}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                >
-                  <div className={`p-3 rounded-xl ${action.iconColor} bg-white shadow-sm`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div className="text-left flex-1">
-                    <p className="font-semibold text-gray-900">{action.title}</p>
-                    <p className="text-sm text-gray-600">{action.description}</p>
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          {/* Pet Status Summary */}
-          <motion.div 
-            className="mt-6 p-4 bg-gray-50 rounded-2xl border border-gray-200"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
+          <motion.div
+            className="w-full py-3 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center space-x-2 cursor-not-allowed"
+            whileHover={{ scale: 1.01 }}
+            title="Você precisa de 5.000 pontos para desbloquear"
           >
-            <h4 className="font-semibold text-gray-900 mb-2">Status Rápido</h4>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Última Interação:</span>
-                <span className="font-medium text-gray-900">
-                  {new Date(activePet!.lastInteraction).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Condições:</span>
-                <span className={`font-medium ${activePet!.conditions.length > 0 ? 'text-orange-600' : 'text-green-600'}`}>
-                  {activePet!.conditions.length > 0 ? `${activePet!.conditions.length} ativa(s)` : 'Saudável'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Status Geral:</span>
-                <span className={`font-medium ${
-                  activePet!.health >= 7 && activePet!.happiness >= 7 && activePet!.hunger >= 6 ? 'text-green-600' :
-                  activePet!.health >= 5 && activePet!.happiness >= 5 && activePet!.hunger >= 4 ? 'text-yellow-600' :
-                  'text-red-600'
-                }`}>
-                  {activePet!.health >= 7 && activePet!.happiness >= 7 && activePet!.hunger >= 6 ? 'Excelente' :
-                   activePet!.health >= 5 && activePet!.happiness >= 5 && activePet!.hunger >= 4 ? 'Bom' : 'Precisa de Cuidados'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Itens Disponíveis:</span>
-                <span className="font-medium text-blue-600">
-                  {inventory.filter(item => item.quantity > 0).length} itens
-                </span>
-              </div>
-            </div>
+            <Lock className="w-5 h-5" />
+            <span>Bloqueado (5.000 pts)</span>
           </motion.div>
-
-          {/* Create New Pet Button - Smaller */}
-          <div className="mt-6">
-            {canCreateNewPet() ? (
-              <motion.button
-                onClick={() => setShowPetCreation(true)}
-                className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all font-medium shadow-md flex items-center justify-center space-x-2 text-sm"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Plus className="w-4 h-4" />
-                <span>Criar Novo Pet</span>
-              </motion.button>
-            ) : (
-              <motion.div
-                className="w-full py-2 bg-gray-100 text-gray-500 rounded-lg flex items-center justify-center space-x-2 cursor-not-allowed text-sm"
-                whileHover={{ scale: 1.01 }}
-                title={`Você precisa de ${getRequiredScoreForNextPet().toLocaleString()} pontos para criar outro pet`}
-              >
-                <Lock className="w-4 h-4" />
-                <span>Bloqueado ({getRequiredScoreForNextPet().toLocaleString()} pts)</span>
-              </motion.div>
-            )}
-          </div>
         </motion.div>
       </div>
 
