@@ -144,7 +144,8 @@ export interface Weapon {
 }
 
 export interface Item {
-  id: string;
+  id: string; // This will now represent the UUID from the database `items` table.
+  slug: string; // Human-readable string identifier, e.g., 'magic-apple-1'
   name: string;
   description: string;
   type: 'Food' | 'Potion' | 'Equipment' | 'Special' | 'Collectible' | 'Theme' | 'Weapon' | 'Style';

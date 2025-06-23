@@ -238,6 +238,8 @@ export class GameService {
         .from('inventory')
         .select('id, quantity, item_id')
         .eq('user_id', userId)
+        // itemId is now expected to be a UUID.
+        // The inventory.item_id column is also UUID.
         .eq('item_id', itemId)
         .is('equipped_pet_id', null) // Ensure we are targeting an unequipped stack
         .single();
