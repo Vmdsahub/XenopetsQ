@@ -84,7 +84,12 @@ export const InventoryScreen: React.FC = () => {
   };
 
   const handleDiscardItem = (item: Item) => {
-    removeFromInventory(item.id, 1);
+    if (item.inventoryId) {
+      removeFromInventory(item.inventoryId, 1);
+    } else {
+      removeFromInventory(item.id, 1);
+    }
+    
     addNotification({
       type: 'warning',
       title: 'Item Discarded',

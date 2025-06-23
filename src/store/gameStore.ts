@@ -591,15 +591,24 @@ export const useGameStore = create<GameStore>()(
       
       useItem: async (itemId, petId) => { // Made async to align with potential async operations
         const state = get();
-        const item = state.inventory.find(i => i.id === itemId) || get().getUniversalItem(itemId);
+        const inventoryItem = state.inventory.find(i => i.id === itemId);
+        
+        if (!inventoryItem) {
+          console.error(`Item ${itemId} not found in inventory`);
+          return;
+        }
+        
         const pet = state.pets.find(p => p.id === petId);
         
-        if (!item || !pet) return;
+        if (!pet) {
+          console.error(`Pet ${petId} not found`);
+          return;
+        }
         
         // Apply item effects to pet
-        if (item.effects) {
+        if (inventoryItem.effects) {
           const updatedStats: Partial<Pet> = {};
-          Object.entries(item.effects).forEach(([stat, value]) => {
+          Object.entries(inventoryItem.effects).forEach(([stat, value]) => {
             if (stat in pet) {
               const currentValue = pet[stat as keyof Pet] as number;
               const maxValue = ['health', 'happiness', 'hunger'].includes(stat) ? 10 : currentValue + value;
@@ -610,18 +619,23 @@ export const useGameStore = create<GameStore>()(
           get().updatePetStats(petId, updatedStats);
         }
         
-        // Remove item from inventory
-        get().removeFromInventory(itemId, 1);
+        // Remove item from inventory using the inventory item's ID
+        if (inventoryItem.inventoryId) {
+          get().removeFromInventory(inventoryItem.inventoryId, 1);
+        } else {
+          console.error('Item does not have inventoryId, falling back to item.id');
+          get().removeFromInventory(itemId, 1);
+        }
         
         // Add notification with item effects
-        const effectsText = item.effects ? 
-          Object.entries(item.effects).map(([stat, value]) => `+${value} ${stat}`).join(', ') : 
+        const effectsText = inventoryItem.effects ? 
+          Object.entries(inventoryItem.effects).map(([stat, value]) => `+${value} ${stat}`).join(', ') : 
           'efeitos aplicados';
         
         get().addNotification({
           type: 'success',
           title: 'Item Usado',
-          message: `${item.name} foi usado em ${pet.name}! ${effectsText}`,
+          message: `${inventoryItem.name} foi usado em ${pet.name}! ${effectsText}`,
           isRead: false
         });
       },

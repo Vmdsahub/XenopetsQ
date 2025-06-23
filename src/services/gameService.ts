@@ -38,8 +38,8 @@ export class GameService {
         .from('inventory')
         .select('id, quantity')
         .eq('user_id', userId)
-        .eq('item_id', itemId)
-        .is('equipped_pet_id', null) // Ensure we are targeting an unequipped stack
+        .eq('id', itemId)
+        .is('equipped_pet_id', null)
         .single();
 
       if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: 'single' row not found
@@ -48,7 +48,7 @@ export class GameService {
       }
 
       if (!existingItem) {
-        console.warn(`Item ${itemId} not found in user ${userId}'s unequipped inventory to remove.`);
+        console.warn(`Inventory entry ${itemId} not found in user ${userId}'s unequipped inventory to remove.`);
         return false; // Or throw an error, depending on desired behavior
       }
 
@@ -217,6 +217,7 @@ export class GameService {
 
       return data.map(inventoryItem => ({
         ...inventoryItem.items,
+        inventoryId: inventoryItem.id,
         quantity: inventoryItem.quantity,
         isEquipped: inventoryItem.is_equipped,
         createdAt: new Date(inventoryItem.acquired_at)

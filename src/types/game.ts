@@ -160,6 +160,7 @@ export interface Item {
   slot?: 'head' | 'torso' | 'legs' | 'gloves' | 'footwear';
   imageUrl?: string;
   createdAt: Date;
+  inventoryId?: string;
 }
 
 export type ItemRarity = 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary' | 'Unique';
