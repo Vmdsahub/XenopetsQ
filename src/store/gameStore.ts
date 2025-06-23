@@ -559,28 +559,33 @@ export const useGameStore = create<GameStore>()(
         if (!state.user) return;
 
         try {
-          const success = await gameService.removeItemFromInventory(state.user.id, itemId, quantityToRemove);
-          if (success) {
-            set((currentState) => ({
-              inventory: currentState.inventory.reduce((acc, item) => {
-                if (item.id === itemId) {
-                  const newQuantity = item.quantity - quantityToRemove;
-                  if (newQuantity > 0) {
-                    acc.push({ ...item, quantity: newQuantity });
-                  }
-                } else {
-                  acc.push(item);
+          // Primeiro, atualize o estado local para feedback imediato ao usuário
+          set((currentState) => ({
+            inventory: currentState.inventory.reduce((acc, item) => {
+              if (item.id === itemId) {
+                const newQuantity = item.quantity - quantityToRemove;
+                if (newQuantity > 0) {
+                  acc.push({ ...item, quantity: newQuantity });
                 }
-                return acc;
-              }, [] as Item[])
-            }));
-          } else {
-            // Potentially notify user of failure if desired
-            console.warn(`Failed to remove item ${itemId} from database.`);
+              } else {
+                acc.push(item);
+              }
+              return acc;
+            }, [] as Item[])
+          }));
+
+          // Depois, atualize no banco de dados
+          const success = await gameService.removeItemFromInventory(state.user.id, itemId, quantityToRemove);
+          
+          if (!success) {
+            // Se falhar no banco de dados, restaure o estado anterior
+            console.warn(`Failed to remove item ${itemId} from database. Reverting local state.`);
+            await get().syncWithDatabase(); // Sincronize com o banco de dados para garantir consistência
           }
         } catch (error) {
           console.error('Error removing item from inventory store:', error);
-          // Potentially notify user
+          // Em caso de erro, sincronize com o banco de dados para garantir consistência
+          await get().syncWithDatabase();
         }
       },
       
@@ -616,7 +621,8 @@ export const useGameStore = create<GameStore>()(
         get().addNotification({
           type: 'success',
           title: 'Item Usado',
-          message: `${item.name} foi usado em ${pet.name}! ${effectsText}`
+          message: `${item.name} foi usado em ${pet.name}! ${effectsText}`,
+          isRead: false
         });
       },
       

@@ -63,7 +63,8 @@ export const InventoryScreen: React.FC = () => {
       addNotification({
         type: 'error',
         title: 'No Pet Selected',
-        message: 'Please select an active pet first.'
+        message: 'Please select an active pet first.',
+        isRead: false
       });
       return;
     }
@@ -72,7 +73,8 @@ export const InventoryScreen: React.FC = () => {
       addNotification({
         type: 'info',
         title: 'Equipment Item',
-        message: 'Equipment items will be automatically equipped in future updates.'
+        message: 'Equipment items will be automatically equipped in future updates.',
+        isRead: false
       });
     } else {
       useItem(item.id, activePet.id);
@@ -86,7 +88,8 @@ export const InventoryScreen: React.FC = () => {
     addNotification({
       type: 'warning',
       title: 'Item Discarded',
-      message: `${item.name} has been removed from your inventory.`
+      message: `${item.name} has been removed from your inventory.`,
+      isRead: false
     });
     setSelectedItem(null);
   };
@@ -132,7 +135,8 @@ export const InventoryScreen: React.FC = () => {
               addNotification({
                 type: 'info',
                 title: 'Explore the World',
-                message: 'Visit shops and complete quests to find amazing items!'
+                message: 'Visit shops and complete quests to find amazing items!',
+                isRead: false
               });
             }}
           >
